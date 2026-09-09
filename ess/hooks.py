@@ -12,7 +12,8 @@ use_json_request_body = True
 # Apps
 # ------------------
 
-# required_apps = []
+# ESS is a client for Frappe HR's doctypes — it defines none of its own.
+required_apps = ["frappe/erpnext", "frappe/hrms"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -303,4 +304,3 @@ require_type_annotated_api_methods = True
 # ------------
 # List of apps whose translatable strings should be excluded from this app's translations.
 # ignore_translatable_strings_from = []
-
