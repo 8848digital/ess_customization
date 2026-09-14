@@ -65,7 +65,11 @@ def create(payload: dict) -> dict:
 	HR refuses to submit a Leave Application still in Open, by design: the
 	approver is the one who moves it to Approved/Rejected and submits it.
 	"""
-	return insert_for_employee("Leave Application", payload, WRITE_FIELDS, extra={"status": "Open"})
+	employee = require_employee_id()
+	extra = {"status": "Open"}
+	if not payload.get("leave_approver"):
+		extra["leave_approver"] = frappe.db.get_value("Employee", employee, "leave_approver")
+	return insert_for_employee("Leave Application", payload, WRITE_FIELDS, extra=extra)
 
 
 def cancel(name: str) -> dict:

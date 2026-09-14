@@ -2,7 +2,7 @@ import frappe
 from frappe import _
 from frappe.utils import flt
 
-from ess.utils import require_employee_id, user_full_names
+from ess.utils import require_employee_id, session_employee, user_full_names
 
 LIST_FIELDS = [
 	"name",
@@ -48,11 +48,14 @@ def create(payload: dict) -> dict:
 	It stays a draft on purpose: HR refuses to submit an Expense Claim whose
 	`approval_status` is still Draft, and only the approver may change that.
 	"""
+	employee = require_employee_id()
 	claim = frappe.get_doc(
 		{
 			"doctype": "Expense Claim",
-			"employee": require_employee_id(),
+			"employee": employee,
 			**{f: payload.get(f) for f in WRITE_FIELDS if payload.get(f) is not None},
+			"expense_approver": payload.get("expense_approver")
+			or frappe.db.get_value("Employee", employee, "expense_approver"),
 			"expenses": [
 				{
 					"expense_date": line.get("expense_date"),
@@ -133,7 +136,13 @@ def get_detail(name: str) -> dict:
 	list would be three extra queries per claim for data nobody is looking at.
 	"""
 	claim = frappe.db.get_value("Expense Claim", name, LIST_FIELDS, as_dict=True)
-	if not claim or claim.employee != require_employee_id():
+	if not claim:
+		frappe.throw(_("Expense Claim {0} not found").format(name))
+
+	employee = session_employee()
+	is_owner = employee and claim.employee == employee
+	is_approver = claim.expense_approver == frappe.session.user
+	if not (is_owner or is_approver or "HR Manager" in frappe.get_roles()):
 		frappe.throw(_("Expense Claim {0} is not yours to view").format(name), frappe.PermissionError)
 
 	claim["expense_approver_name"] = user_full_names([claim.expense_approver]).get(claim.expense_approver)
