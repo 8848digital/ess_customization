@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 
-from ess.utils import insert_for_employee, list_for_employee, require_employee_id
+from ess.utils import insert_for_employee, list_for_employee, require_employee_id, session_employee
 
 LIST_FIELDS = [
 	"name",
@@ -40,6 +40,23 @@ def get_list(limit=None) -> list[dict]:
 		limit=limit,
 	)
 	return rows
+
+
+def get(name: str) -> dict:
+	"""One application — the applicant's own, or one pending the caller's approval
+	as leave_approver. The Approvals detail screen renders this; `get_list` alone
+	can't serve it since that is scoped to the signed-in employee's own rows."""
+	doc = frappe.db.get_value("Leave Application", name, LIST_FIELDS, as_dict=True)
+	if not doc:
+		frappe.throw(_("Leave Application {0} not found").format(name))
+
+	employee = session_employee()
+	is_owner = employee and doc.employee == employee
+	is_approver = doc.leave_approver == frappe.session.user
+	if not (is_owner or is_approver or "HR Manager" in frappe.get_roles()):
+		frappe.throw(_("Leave Application {0} is not yours to view").format(name), frappe.PermissionError)
+
+	return doc
 
 
 def create(payload: dict) -> dict:

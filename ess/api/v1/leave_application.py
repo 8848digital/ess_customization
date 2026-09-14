@@ -10,6 +10,12 @@ def get_list(limit: int | None = None):
 	return utils.get_list(limit)
 
 
+@frappe.whitelist()
+@api_endpoint
+def get(name: str):
+	return utils.get(name)
+
+
 @frappe.whitelist(methods=["POST"])
 @api_endpoint
 def create(**payload):
