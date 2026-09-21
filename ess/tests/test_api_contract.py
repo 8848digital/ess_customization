@@ -38,7 +38,6 @@ def _configured_fields() -> dict[str, list[str]]:
 	fields = {
 		"Employee": _utils("employee").PROFILE_FIELDS,
 		"Attendance": _utils("attendance").LIST_FIELDS,
-		"Salary Slip": _utils("salary_slip").LIST_FIELDS,
 		"Notification Log": _utils("notification_log").LIST_FIELDS,
 	}
 	for doctype, module in (
@@ -54,7 +53,6 @@ def _configured_fields() -> dict[str, list[str]]:
 	# Child tables, named only by the two detail endpoints.
 	fields["Expense Claim Detail"] = _utils("expense_claim").DETAIL_LINE_FIELDS
 	fields["Expense Taxes and Charges"] = _utils("expense_claim").DETAIL_TAX_FIELDS
-	fields["Salary Detail"] = _utils("salary_slip").COMPONENT_FIELDS
 
 	for config in KINDS.values():
 		fields.setdefault(config["doctype"], []).extend(
