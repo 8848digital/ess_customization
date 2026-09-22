@@ -35,10 +35,12 @@ def _utils(module: str):
 
 def _configured_fields() -> dict[str, list[str]]:
 	"""Every doctype field this app names, by doctype."""
+	team = _utils("team")
 	fields = {
-		"Employee": _utils("employee").PROFILE_FIELDS,
-		"Attendance": _utils("attendance").LIST_FIELDS,
+		"Employee": [*_utils("employee").PROFILE_FIELDS, *team.ROSTER_FIELDS, *team.MEMBER_FIELDS],
+		"Attendance": [*_utils("attendance").LIST_FIELDS, *team.CALENDAR_ATTENDANCE_FIELDS],
 		"Notification Log": _utils("notification_log").LIST_FIELDS,
+		"Leave Application": list(team.CALENDAR_LEAVE_FIELDS),
 	}
 	for doctype, module in (
 		("Employee Checkin", "employee_checkin"),
@@ -48,7 +50,7 @@ def _configured_fields() -> dict[str, list[str]]:
 		("Employee Advance", "employee_advance"),
 	):
 		utils = _utils(module)
-		fields[doctype] = [*utils.LIST_FIELDS, *utils.WRITE_FIELDS]
+		fields.setdefault(doctype, []).extend([*utils.LIST_FIELDS, *utils.WRITE_FIELDS])
 
 	# Child tables, named only by the two detail endpoints and the type picker.
 	fields["Expense Claim Detail"] = _utils("expense_claim").DETAIL_LINE_FIELDS

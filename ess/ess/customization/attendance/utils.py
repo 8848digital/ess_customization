@@ -12,8 +12,13 @@ LIST_FIELDS = [
 ]
 
 
-def get_list(from_date=None, to_date=None, limit=None) -> list[dict]:
-	"""Submitted attendance only — a draft row is not yet the payroll's answer."""
+def get_list(from_date=None, to_date=None, limit=None, employee: str | None = None) -> list[dict]:
+	"""Submitted attendance only — a draft row is not yet the payroll's answer.
+
+	`employee` defaults to the session employee. The whitelisted endpoint never
+	passes it — only a caller that has already checked it may read someone
+	else's attendance (see team.utils.assert_manages).
+	"""
 	filters = {"docstatus": 1}
 	if from_date and to_date:
 		filters["attendance_date"] = ["between", [from_date, to_date]]
@@ -24,4 +29,5 @@ def get_list(from_date=None, to_date=None, limit=None) -> list[dict]:
 		filters=filters,
 		order_by="attendance_date desc",
 		limit=limit,
+		employee=employee,
 	)

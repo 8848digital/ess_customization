@@ -4,14 +4,18 @@ from hrms.hr.doctype.leave_application.leave_application import get_leave_detail
 from ess.utils import require_employee_id
 
 
-def get_balances(on_date: str | None = None) -> list[dict]:
+def get_balances(on_date: str | None = None, employee: str | None = None) -> list[dict]:
 	"""Allowance per leave type for the period covering *on_date*.
 
 	Carry-forward, encashment and leave-without-pay rules live in HR's ledger,
 	so the numbers come straight from `get_leave_details` rather than being
 	re-derived here — the device never recomputes them either (spec.md §6.6).
+
+	`employee` defaults to the session employee. The whitelisted endpoint never
+	passes it — only a caller that has already checked it may read someone
+	else's balances (see team.utils.assert_manages).
 	"""
-	details = get_leave_details(require_employee_id(), on_date or today())
+	details = get_leave_details(employee or require_employee_id(), on_date or today())
 
 	balances = []
 	for leave_type, allocation in (details.get("leave_allocation") or {}).items():
