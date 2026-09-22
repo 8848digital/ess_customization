@@ -1,4 +1,4 @@
-from ess.utils import insert_for_employee, list_for_employee
+from ess.utils import insert_for_employee, list_for_employee, update_for_employee
 
 LIST_FIELDS = [
 	"name",
@@ -30,3 +30,9 @@ def get_list(limit=None) -> list[dict]:
 
 def create(payload: dict) -> dict:
 	return insert_for_employee("Employee Advance", payload, WRITE_FIELDS)
+
+
+def update(name: str, payload: dict) -> dict:
+	"""Amend one's own still-Draft advance request. Only the same fields
+	create() accepts may change, and only before it's been actioned."""
+	return update_for_employee("Employee Advance", name, payload, WRITE_FIELDS)

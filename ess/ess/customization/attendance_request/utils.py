@@ -1,6 +1,6 @@
 from frappe.utils import date_diff
 
-from ess.utils import insert_for_employee, list_for_employee
+from ess.utils import insert_for_employee, list_for_employee, update_for_employee
 
 LIST_FIELDS = [
 	"name",
@@ -53,3 +53,9 @@ def get_list(limit=None) -> list[dict]:
 def create(payload: dict) -> dict:
 	"""Filed as a draft — submitting is the approver's action, not the filer's."""
 	return insert_for_employee("Attendance Request", payload, WRITE_FIELDS)
+
+
+def update(name: str, payload: dict) -> dict:
+	"""Amend one's own still-Open request. Only the same fields create()
+	accepts may change, and only before the approver has acted."""
+	return update_for_employee("Attendance Request", name, payload, WRITE_FIELDS)

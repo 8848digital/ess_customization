@@ -26,3 +26,9 @@ def create(**payload):
 @api_endpoint
 def upload_receipt(file_name: str, content: str, mime_type: str | None = None):
 	return utils.upload_receipt(file_name, content, mime_type)
+
+
+@frappe.whitelist(methods=["POST"])
+@api_endpoint
+def update(name: str, **payload):
+	return utils.update(name, payload)

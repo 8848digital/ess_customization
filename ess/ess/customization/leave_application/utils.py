@@ -1,7 +1,7 @@
 import frappe
 from frappe import _
 
-from ess.utils import insert_for_employee, list_for_employee, require_employee_id, session_employee
+from ess.utils import insert_for_employee, list_for_employee, require_employee_id, session_employee, update_for_employee
 
 LIST_FIELDS = [
 	"name",
@@ -70,6 +70,12 @@ def create(payload: dict) -> dict:
 	if not payload.get("leave_approver"):
 		extra["leave_approver"] = frappe.db.get_value("Employee", employee, "leave_approver")
 	return insert_for_employee("Leave Application", payload, WRITE_FIELDS, extra=extra)
+
+
+def update(name: str, payload: dict) -> dict:
+	"""Amend one's own still-Open application. Only the same fields create()
+	accepts may change, and only before the approver has acted."""
+	return update_for_employee("Leave Application", name, payload, WRITE_FIELDS)
 
 
 def cancel(name: str) -> dict:

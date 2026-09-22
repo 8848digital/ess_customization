@@ -67,6 +67,26 @@ def insert_for_employee(
 
 
 
+def update_for_employee(doctype: str, name: str, payload: dict, fields: tuple[str, ...]) -> dict:
+	"""Update *doctype* for the session employee's own record.
+
+	Only *fields* are copied across — same allowlist discipline as
+	insert_for_employee. Refuses once the record is no longer the employee's
+	to change: not theirs, or already decided (docstatus != 0 — Frappe's own
+	validate_update_after_submit would catch most of this anyway, but this
+	gives a clean message instead of a framework error).
+	"""
+	doc = frappe.get_doc(doctype, name)
+	if doc.employee != require_employee_id():
+		frappe.throw(_("You can only edit your own records"), frappe.PermissionError)
+	if doc.docstatus != 0:
+		frappe.throw(_("{0} {1} has already been decided and can no longer be edited").format(doctype, name))
+
+	doc.update({f: payload.get(f) for f in fields if payload.get(f) is not None})
+	doc.save()
+	return {"name": doc.name}
+
+
 def user_full_names(emails) -> dict[str, str]:
 	"""`{email: full_name}` for the given users, in one query."""
 	emails = {e for e in emails if e}

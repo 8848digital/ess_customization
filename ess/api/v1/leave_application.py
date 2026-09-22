@@ -24,5 +24,11 @@ def create(**payload):
 
 @frappe.whitelist(methods=["POST"])
 @api_endpoint
+def update(name: str, **payload):
+	return utils.update(name, payload)
+
+
+@frappe.whitelist(methods=["POST"])
+@api_endpoint
 def cancel(name: str):
 	return utils.cancel(name)

@@ -83,6 +83,51 @@ def create(payload: dict) -> dict:
 	return {"name": claim.name}
 
 
+def update(name: str, payload: dict) -> dict:
+	"""Amend one's own still-Draft claim, including its line items and taxes.
+	Only before the approver has acted (docstatus 0)."""
+	claim = frappe.get_doc("Expense Claim", name)
+	if claim.employee != require_employee_id():
+		frappe.throw(_("You can only edit your own claims"), frappe.PermissionError)
+	if claim.docstatus != 0:
+		frappe.throw(_("Expense Claim {0} has already been decided and can no longer be edited").format(name))
+
+	for f in WRITE_FIELDS:
+		if payload.get(f) is not None:
+			claim.set(f, payload[f])
+
+	if payload.get("expenses") is not None:
+		claim.set(
+			"expenses",
+			[
+				{
+					"expense_date": line.get("expense_date"),
+					"expense_type": line.get("expense_type"),
+					"description": line.get("description"),
+					"amount": flt(line.get("amount")),
+					"sanctioned_amount": flt(line.get("amount")),
+				}
+				for line in payload["expenses"]
+			],
+		)
+	if payload.get("taxes") is not None:
+		claim.set(
+			"taxes",
+			[
+				{
+					"description": tax.get("description"),
+					"rate": flt(tax.get("rate")),
+					"tax_amount": flt(tax.get("tax_amount")),
+				}
+				for tax in payload["taxes"]
+			],
+		)
+
+	claim.save()
+	attach_receipts(claim.name, payload.get("attachments") or [])
+	return {"name": claim.name}
+
+
 def attach_receipts(claim: str, attachments: list[dict]) -> None:
 	"""Point already-uploaded receipt files at the claim they belong to.
 
