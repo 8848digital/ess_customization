@@ -1,3 +1,4 @@
+import erpnext
 import frappe
 from frappe import _
 from frappe.utils import flt
@@ -49,6 +50,7 @@ def create(payload: dict) -> dict:
 	`approval_status` is still Draft, and only the approver may change that.
 	"""
 	employee = require_employee_id()
+	company = payload.get("company") or frappe.db.get_value("Employee", employee, "company")
 	claim = frappe.get_doc(
 		{
 			"doctype": "Expense Claim",
@@ -56,6 +58,15 @@ def create(payload: dict) -> dict:
 			**{f: payload.get(f) for f in WRITE_FIELDS if payload.get(f) is not None},
 			"expense_approver": payload.get("expense_approver")
 			or frappe.db.get_value("Employee", employee, "expense_approver"),
+			# The app has no currency picker — every claim is filed in the
+			# employee's own company currency. Setting these ourselves is what
+			# Expense Claim's own controller does when multi-currency is off
+			# (`set_company_currency_if_multi_currency_disabled`); doing it
+			# unconditionally here means a claim still saves if that HR Setting
+			# is later turned on, since this API never offers a currency to pick.
+			"company": company,
+			"currency": erpnext.get_company_currency(company) if company else None,
+			"exchange_rate": 1.0,
 			"expenses": [
 				{
 					"expense_date": line.get("expense_date"),
