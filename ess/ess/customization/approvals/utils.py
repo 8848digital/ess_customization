@@ -81,6 +81,33 @@ def direct_reports() -> list[str]:
 	return frappe.get_all("Employee", filters={"reports_to": manager}, pluck="name")
 
 
+def is_approver() -> bool:
+	"""Whether the signed-in user is ever named as an approver.
+
+	Asks the same question `get_pending` asks — the approver field on the
+	DOCUMENT, not on the Employee master. The two diverge: HR stamps
+	`leave_approver` onto each Leave Application at creation from whatever the
+	master said then, and the master can be changed or never set at all. A user
+	who is named on live documents but on nobody's master would look like a
+	non-approver to a master-only check, while their inbox is not empty.
+
+	Deliberately not limited to *pending* documents: an approver whose inbox
+	happens to be empty today must still be offered the Team workspace, or the
+	workspace appears and disappears under them.
+	"""
+	for config in KINDS.values():
+		field = config["approver_field"]
+		if field and frappe.db.exists(config["doctype"], {field: frappe.session.user}):
+			return True
+
+	# The master is the forward-looking half: assigned as approver, nothing
+	# filed against it yet.
+	return bool(
+		frappe.db.exists("Employee", {"leave_approver": frappe.session.user})
+		or frappe.db.exists("Employee", {"expense_approver": frappe.session.user})
+	)
+
+
 def get_pending(limit=50) -> list[dict]:
 	"""What is waiting on the signed-in user, across all four request kinds.
 
@@ -104,13 +131,17 @@ def get_pending(limit=50) -> list[dict]:
 	return _newest_first(pending)
 
 
-def get_mine(limit=50) -> list[dict]:
+def get_mine(limit=50, employee: str | None = None) -> list[dict]:
 	"""The signed-in employee's own submissions, across the same four kinds.
 
 	Same row shape as `get_pending`, so one list component renders both — this
 	is the "My Requests" screen, where `get_pending` is the approver's inbox.
+
+	`employee` defaults to the session employee. The whitelisted endpoint never
+	passes it — only a caller that has already checked it may read someone
+	else's submissions (see team.utils.assert_manages).
 	"""
-	employee = session_employee()
+	employee = employee or session_employee()
 	if not employee:
 		return []
 
