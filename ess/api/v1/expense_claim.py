@@ -12,6 +12,12 @@ def get_list(limit: int | None = None):
 
 @frappe.whitelist()
 @api_endpoint
+def get_types():
+	return utils.get_types()
+
+
+@frappe.whitelist()
+@api_endpoint
 def get_detail(name: str):
 	return utils.get_detail(name)
 

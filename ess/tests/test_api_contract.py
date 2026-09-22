@@ -50,9 +50,10 @@ def _configured_fields() -> dict[str, list[str]]:
 		utils = _utils(module)
 		fields[doctype] = [*utils.LIST_FIELDS, *utils.WRITE_FIELDS]
 
-	# Child tables, named only by the two detail endpoints.
+	# Child tables, named only by the two detail endpoints and the type picker.
 	fields["Expense Claim Detail"] = _utils("expense_claim").DETAIL_LINE_FIELDS
 	fields["Expense Taxes and Charges"] = _utils("expense_claim").DETAIL_TAX_FIELDS
+	fields["Expense Claim Account"] = _utils("expense_claim").TYPE_ACCOUNT_FIELDS
 
 	for config in KINDS.values():
 		fields.setdefault(config["doctype"], []).extend(

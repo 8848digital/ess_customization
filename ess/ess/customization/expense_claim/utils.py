@@ -43,6 +43,33 @@ def get_list(limit=None) -> list[dict]:
 	return rows
 
 
+# The `Expense Claim Type` → accounts child table (`Expense Claim Account`).
+TYPE_ACCOUNT_FIELDS = ["parent", "company"]
+
+
+def get_types() -> list[str]:
+	"""The expense categories this employee can actually file against.
+
+	`Expense Claim Type` has no enabled/disabled flag, so "usable" cannot be read
+	off the type itself. What makes one fileable is a default account for the
+	employee's company: Expense Claim's `validate()` calls
+	`get_expense_claim_account(expense_type, company)` on every save — insert
+	included — and that throws when the type has no row for the company. A type
+	without one is therefore a category the picker would offer and the server
+	would reject, which is exactly the bug this endpoint exists to end.
+	"""
+	company = frappe.db.get_value("Employee", require_employee_id(), "company")
+	rows = frappe.get_all(
+		"Expense Claim Account",
+		filters={"parenttype": "Expense Claim Type", "company": company},
+		fields=TYPE_ACCOUNT_FIELDS,
+		order_by="parent asc",
+	)
+	# dict.fromkeys, not set(): keeps the alphabetical order, and collapses a
+	# type carrying more than one row for the same company.
+	return list(dict.fromkeys(row.parent for row in rows))
+
+
 def create(payload: dict) -> dict:
 	"""File a claim as a draft.
 
