@@ -20,3 +20,9 @@ def get_member(employee: str):
 @api_endpoint
 def get_calendar(from_date: str, to_date: str):
 	return utils.get_calendar(from_date, to_date)
+
+
+@frappe.whitelist()
+@api_endpoint
+def get_calendar_counts(from_date: str, to_date: str):
+	return utils.get_calendar_counts(from_date, to_date)

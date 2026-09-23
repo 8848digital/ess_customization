@@ -1,5 +1,8 @@
+from datetime import timedelta
+
 import frappe
 from frappe import _
+from frappe.utils import getdate
 
 from ess.ess.customization.approvals.utils import direct_reports, get_mine
 from ess.ess.customization.attendance.utils import get_list as attendance_list
@@ -173,3 +176,53 @@ def get_calendar(from_date: str, to_date: str) -> dict:
 			order_by="attendance_date asc",
 		),
 	}
+
+
+def get_calendar_counts(from_date: str, to_date: str) -> dict[str, int]:
+	"""Headcount per day, for the month grid.
+
+	The grid only ever shows a number per cell — `get_calendar` above sends
+	every leave/attendance row's name and type up front, which is a client-side
+	convenience the grid doesn't need. This fetches the same rows but only the
+	fields needed to count, and returns one int per date; the full detail is
+	fetched separately (`get_calendar` called with `from_date == to_date`) once
+	someone taps a day.
+	"""
+	reports = direct_reports()
+	if not reports:
+		return {}
+
+	leaves = frappe.get_all(
+		"Leave Application",
+		filters={
+			"employee": ["in", reports],
+			"status": "Approved",
+			"docstatus": 1,
+			"from_date": ["<=", to_date],
+			"to_date": [">=", from_date],
+		},
+		fields=["employee", "from_date", "to_date"],
+	)
+	attendance = frappe.get_all(
+		"Attendance",
+		filters={
+			"employee": ["in", reports],
+			"docstatus": 1,
+			"status": ["in", CALENDAR_ATTENDANCE_STATUSES],
+			"attendance_date": ["between", [from_date, to_date]],
+		},
+		fields=["employee", "attendance_date"],
+	)
+
+	window_start, window_end = getdate(from_date), getdate(to_date)
+	by_date: dict[str, set[str]] = {}
+	for row in leaves:
+		day = max(getdate(row.from_date), window_start)
+		last = min(getdate(row.to_date), window_end)
+		while day <= last:
+			by_date.setdefault(day.isoformat(), set()).add(row.employee)
+			day += timedelta(days=1)
+	for row in attendance:
+		by_date.setdefault(getdate(row.attendance_date).isoformat(), set()).add(row.employee)
+
+	return {date: len(employees) for date, employees in by_date.items()}
